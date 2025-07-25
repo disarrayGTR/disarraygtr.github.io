@@ -6,6 +6,41 @@ class AutomationGame {
         this.game = null;
     }
     
+    createAudioContext() {
+        // Создаем AudioContext только после пользовательского взаимодействия
+        let audioContext = null;
+
+        const createContext = () => {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                } catch (e) {
+                    console.warn('AudioContext не поддерживается');
+                }
+            }
+            return audioContext;
+        };
+
+        // Добавляем обработчик для первого пользовательского взаимодействия
+        const enableAudio = () => {
+            createContext();
+            document.removeEventListener('touchstart', enableAudio);
+            document.removeEventListener('touchend', enableAudio);
+            document.removeEventListener('mousedown', enableAudio);
+            document.removeEventListener('keydown', enableAudio);
+        };
+
+        document.addEventListener('touchstart', enableAudio);
+        document.addEventListener('touchend', enableAudio);
+        document.addEventListener('mousedown', enableAudio);
+        document.addEventListener('keydown', enableAudio);
+
+        return createContext();
+    }
+
     init() {
         // Инициализация Telegram WebApp
         this.telegram = initTelegram();
@@ -23,6 +58,10 @@ class AutomationGame {
                     gravity: { y: 0 },
                     debug: false
                 }
+            },
+            audio: {
+                disableWebAudio: false,
+                context: this.createAudioContext()
             },
             scene: [Scene1, Scene2, Scene3, Scene4, Scene5],
             scale: {

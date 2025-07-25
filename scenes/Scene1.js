@@ -5,15 +5,15 @@ class Scene1 extends Phaser.Scene {
 
     preload() {
         // Создаем простые графические элементы для демонстрации
-        this.load.image('office-bg', 'data:image/svg+xml;base64,' + btoa(`
-            <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-                <rect width="800" height="600" fill="#e8f4f8"/>
-                <rect x="50" y="400" width="700" height="150" fill="#d4d4d4" rx="10"/>
-                <rect x="100" y="100" width="120" height="80" fill="#fff" stroke="#333" stroke-width="2" rx="5"/>
-                <rect x="250" y="100" width="120" height="80" fill="#fff" stroke="#333" stroke-width="2" rx="5"/>
-                <rect x="400" y="100" width="120" height="80" fill="#fff" stroke="#333" stroke-width="2" rx="5"/>
-            </svg>
-        `));
+        const svgString = '<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect width="800" height="600" fill="#e8f4f8"/>' +
+            '<rect x="50" y="400" width="700" height="150" fill="#d4d4d4" rx="10"/>' +
+            '<rect x="100" y="100" width="120" height="80" fill="#fff" stroke="#333" stroke-width="2" rx="5"/>' +
+            '<rect x="250" y="100" width="120" height="80" fill="#fff" stroke="#333" stroke-width="2" rx="5"/>' +
+            '<rect x="400" y="100" width="120" height="80" fill="#fff" stroke="#333" stroke-width="2" rx="5"/>' +
+            '</svg>';
+
+        this.load.image('office-bg', 'data:image/svg+xml;base64,' + btoa(svgString));
     }
 
     create() {
