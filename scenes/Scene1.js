@@ -12,9 +12,6 @@ class Scene1 extends Phaser.Scene {
                 <rect x="100" y="100" width="120" height="80" fill="#fff" stroke="#333" stroke-width="2" rx="5"/>
                 <rect x="250" y="100" width="120" height="80" fill="#fff" stroke="#333" stroke-width="2" rx="5"/>
                 <rect x="400" y="100" width="120" height="80" fill="#fff" stroke="#333" stroke-width="2" rx="5"/>
-                <text x="160" y="145" font-family="Arial" font-size="12" text-anchor="middle" fill="#333">Заявки</text>
-                <text x="310" y="145" font-family="Arial" font-size="12" text-anchor="middle" fill="#333">Клиенты</text>
-                <text x="460" y="145" font-family="Arial" font-size="12" text-anchor="middle" fill="#333">Очередь</text>
             </svg>
         `));
     }
@@ -24,7 +21,18 @@ class Scene1 extends Phaser.Scene {
         
         // Фон
         this.add.image(width/2, height/2, 'office-bg').setDisplaySize(width, height);
-        
+
+        // Добавляем текстовые метки для офисных элементов
+        const labelStyle = {
+            fontSize: '12px',
+            fontFamily: 'Arial, sans-serif',
+            fill: '#333'
+        };
+
+        this.add.text(160 * (width/800), 145 * (height/600), 'Заявки', labelStyle).setOrigin(0.5);
+        this.add.text(310 * (width/800), 145 * (height/600), 'Клиенты', labelStyle).setOrigin(0.5);
+        this.add.text(460 * (width/800), 145 * (height/600), 'Очередь', labelStyle).setOrigin(0.5);
+
         // Заголовок
         this.add.text(width/2, 80, GAME_CONFIG.texts.scene1.title, {
             fontSize: '28px',

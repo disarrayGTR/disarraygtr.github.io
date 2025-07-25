@@ -12,11 +12,8 @@ class Scene3 extends Phaser.Scene {
                 <rect x="300" y="100" width="200" height="120" fill="#e8f5e8" stroke="#28a745" stroke-width="2" rx="10"/>
                 <rect x="550" y="100" width="200" height="120" fill="#e8f5e8" stroke="#28a745" stroke-width="2" rx="10"/>
                 <text x="150" y="140" font-family="Arial" font-size="14" text-anchor="middle" fill="#28a745">24/7</text>
-                <text x="150" y="160" font-family="Arial" font-size="12" text-anchor="middle" fill="#28a745">Ответы</text>
                 <text x="400" y="140" font-family="Arial" font-size="14" text-anchor="middle" fill="#28a745">CRM</text>
-                <text x="400" y="160" font-family="Arial" font-size="12" text-anchor="middle" fill="#28a745">Интеграция</text>
                 <text x="650" y="140" font-family="Arial" font-size="14" text-anchor="middle" fill="#28a745">+30%</text>
-                <text x="650" y="160" font-family="Arial" font-size="12" text-anchor="middle" fill="#28a745">Заявки</text>
             </svg>
         `));
     }
@@ -26,7 +23,18 @@ class Scene3 extends Phaser.Scene {
         
         // Фон
         this.add.image(width/2, height/2, 'automation-bg').setDisplaySize(width, height);
-        
+
+        // Добавляем текстовые метки для блоков автоматизации
+        const labelStyle = {
+            fontSize: '12px',
+            fontFamily: 'Arial, sans-serif',
+            fill: '#28a745'
+        };
+
+        this.add.text(150 * (width/800), 160 * (height/600), 'Ответы', labelStyle).setOrigin(0.5);
+        this.add.text(400 * (width/800), 160 * (height/600), 'Интеграция', labelStyle).setOrigin(0.5);
+        this.add.text(650 * (width/800), 160 * (height/600), 'Заявки', labelStyle).setOrigin(0.5);
+
         // Заголовок
         this.add.text(width/2, 60, GAME_CONFIG.texts.scene3.title, {
             fontSize: '28px',
@@ -57,7 +65,7 @@ class Scene3 extends Phaser.Scene {
     }
     
     createGrowthAnimation() {
-        // Анимированные счетчики
+        // Ани��ированные счетчики
         const counters = [
             { x: 150, y: 380, from: 0, to: 50, label: 'Заявки в день' },
             { x: 400, y: 380, from: 30, to: 80, label: 'Конверсия %' },
