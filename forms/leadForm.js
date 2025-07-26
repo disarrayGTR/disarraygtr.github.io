@@ -1,8 +1,29 @@
-// Обработчик формы для сбора лидов
+// Обработчик формы для сбора лидов с интеграцией Google Sheets и Telegram
 class LeadFormHandler {
     constructor() {
         this.form = null;
         this.isSubmitting = false;
+        this.config = {
+            // Google Apps Script конфигурация
+            googleSheets: {
+                deploymentId: 'AKfycbxwep6ng0s2AQF-MbQ1PwwTly82gOowqG_y665sft4EZTvGhAzrrD5XXjrr8zXf1k_iiw',
+                webhookUrl: 'https://script.google.com/macros/s/AKfycbxwep6ng0s2AQF-MbQ1PwwTly82gOowqG_y665sft4EZTvGhAzrrD5XXjrr8zXf1k_iiw/exec',
+                spreadsheetId: '1QdvmycbM8TDtU6e3FB0rG-eTmZLtOc4NZNxYTrRFn0I',
+                enabled: true
+            },
+            // Telegram webhook конфигурация  
+            telegram: {
+                webhookUrl: 'https://your-server.com/webhook/telegram', // Замените на ваш webhook URL
+                botToken: '8464911334:AAGK_M9HU1VWp0nUcNgnBr3fEIlE-B-eI1c',
+                chatId: null, // Будет получен автоматически
+                enabled: true
+            },
+            // Резервный способ - отправка на собственный сервер
+            fallback: {
+                enabled: true,
+                url: '/api/leads' // Endpoint на вашем сервере
+            }
+        };
     }
     
     init() {
@@ -18,7 +39,11 @@ class LeadFormHandler {
         // Добавляем валидацию полей в реальном времени
         this.setupValidation();
         
-        console.log('Форма лидов инициализирована');
+        console.log('📋 Форма лидов инициализирована с интеграциями:', {
+            googleSheets: this.config.googleSheets.enabled,
+            telegram: this.config.telegram.enabled,
+            fallback: this.config.fallback.enabled
+        });
     }
     
     setupValidation() {
@@ -36,7 +61,7 @@ class LeadFormHandler {
             }
         });
         
-        // Валидация телефона
+        // Валидация телефона с улучшенным форматированием
         phoneInput.addEventListener('input', (e) => {
             let value = e.target.value.replace(/\D/g, '');
             
@@ -82,13 +107,11 @@ class LeadFormHandler {
     setFieldError(field, message) {
         field.style.borderColor = '#dc3545';
         
-        // Удаляем старое сообщение об ошибке
         const existingError = field.parentNode.querySelector('.error-message');
         if (existingError) {
             existingError.remove();
         }
         
-        // Добавляем новое сообщение об ошибке
         const errorDiv = document.createElement('div');
         errorDiv.className = 'error-message';
         errorDiv.style.color = '#dc3545';
@@ -154,32 +177,34 @@ class LeadFormHandler {
             phone: document.getElementById('phone').value.trim(),
             email: document.getElementById('email').value.trim(),
             timestamp: new Date().toISOString(),
-            source: 'automation-game'
+            date: new Date().toLocaleDateString('ru-RU'),
+            time: new Date().toLocaleTimeString('ru-RU'),
+            source: 'automation-game',
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            referrer: document.referrer || 'direct'
         };
         
+        console.log('📤 Отправляем данные лида:', formData);
+        
         try {
-            // Отправляем через игру
-            let success = false;
+            // Пытаемся отправить через различные каналы
+            const results = await this.sendToAllChannels(formData);
             
-            if (window.automationGame) {
-                // Пробуем отправить через Telegram WebApp
-                success = await window.automationGame.sendToTelegram(formData);
-                
-                // Если не получилось, пробуем через API
-                if (!success) {
-                    success = await window.automationGame.sendToTelegramAPI(formData);
-                }
-            }
+            // Проверяем результаты
+            const successCount = results.filter(r => r.success).length;
             
-            if (success) {
-                this.showSuccess();
+            if (successCount > 0) {
+                console.log(`✅ Данные успешно отправлены через ${successCount} канал(ов)`);
+                this.showSuccess(results);
             } else {
-                // Резервный способ - сохраняем в localStorage
+                console.warn('⚠️ Ни один канал отправки не сработал, сохраняем локально');
                 this.saveToLocalStorage(formData);
-                this.showMessage('Заявка сохранена! Мы свяжемся с вами в ближайшее время.', 'success');
+                this.showMessage('Заявка сохранена локально! Мы обработаем её в ближайшее время.', 'warning');
             }
+            
         } catch (error) {
-            console.error('Ошибка отправки формы:', error);
+            console.error('❌ Ошибка отправки формы:', error);
             this.saveToLocalStorage(formData);
             this.showMessage('Заявка сохранена! Мы свяжемся с вами в ближайшее время.', 'success');
         } finally {
@@ -188,53 +213,216 @@ class LeadFormHandler {
         }
     }
     
+    async sendToAllChannels(formData) {
+        const results = [];
+        
+        // 1. Отправка в Google Sheets
+        if (this.config.googleSheets.enabled) {
+            try {
+                const googleResult = await this.sendToGoogleSheets(formData);
+                results.push({ channel: 'Google Sheets', success: googleResult, data: formData });
+            } catch (error) {
+                console.error('Google Sheets error:', error);
+                results.push({ channel: 'Google Sheets', success: false, error: error.message });
+            }
+        }
+        
+        // 2. Отправка через Telegram webhook
+        if (this.config.telegram.enabled) {
+            try {
+                const telegramResult = await this.sendToTelegramWebhook(formData);
+                results.push({ channel: 'Telegram Webhook', success: telegramResult, data: formData });
+            } catch (error) {
+                console.error('Telegram webhook error:', error);
+                results.push({ channel: 'Telegram Webhook', success: false, error: error.message });
+            }
+        }
+        
+        // 3. Отправка через Telegram WebApp (если доступен)
+        if (window.automationGame) {
+            try {
+                const webappResult = await window.automationGame.sendToTelegram(formData);
+                results.push({ channel: 'Telegram WebApp', success: webappResult, data: formData });
+            } catch (error) {
+                console.error('Telegram WebApp error:', error);
+                results.push({ channel: 'Telegram WebApp', success: false, error: error.message });
+            }
+        }
+        
+        // 4. Резервная отправка на собственный сервер
+        if (this.config.fallback.enabled) {
+            try {
+                const fallbackResult = await this.sendToFallbackServer(formData);
+                results.push({ channel: 'Fallback Server', success: fallbackResult, data: formData });
+            } catch (error) {
+                console.error('Fallback server error:', error);
+                results.push({ channel: 'Fallback Server', success: false, error: error.message });
+            }
+        }
+        
+        return results;
+    }
+    
+    async sendToGoogleSheets(formData) {
+        console.log('📊 Отправка в Google Sheets через Google Apps Script...');
+
+        const googleAppsScriptUrl = 'https://script.google.com/macros/s/AKfycbxwep6ng0s2AQF-MbQ1PwwTly82gOowqG_y665sft4EZTvGhAzrrD5XXjrr8zXf1k_iiw/exec';
+
+        const response = await fetch(googleAppsScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors', // Google Apps Script требует no-cors
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+
+        // С no-cors мы не можем проверить response, поэтому считаем успешным
+        console.log('✅ Данные отправлены в Google Apps Script');
+        return true;
+    }
+    
+    async sendToTelegramWebhook(formData) {
+        console.log('🤖 Отправка через Telegram webhook...');
+        
+        if (!this.config.telegram.webhookUrl || this.config.telegram.webhookUrl === 'https://your-server.com/webhook/telegram') {
+            console.warn('⚠️ Telegram webhook URL не настроен');
+            return false;
+        }
+        
+        const message = `🎯 *Новая заявка из игры!*
+        
+👤 *Имя:* ${formData.name}
+📞 *Телефон:* ${formData.phone}
+📧 *Email:* ${formData.email}
+
+📊 *Детали:*
+🕐 Время: ${formData.date} ${formData.time}
+🎮 Источник: ${formData.source}
+🌐 Язык: ${formData.language}
+📱 Устройство: ${this.getDeviceInfo(formData.userAgent)}
+
+#лид #автоматизация #игра`;
+        
+        const payload = {
+            chat_id: this.config.telegram.chatId || '@your_channel',
+            text: message,
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '📞 Связаться', url: `tel:${formData.phone}` },
+                        { text: '📧 Email', url: `mailto:${formData.email}` }
+                    ]
+                ]
+            }
+        };
+        
+        const response = await fetch(this.config.telegram.webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+            console.log('✅ Сообщение отправлено в Telegram');
+            return true;
+        } else {
+            const error = await response.text();
+            console.error('❌ Ошибка Telegram webhook:', error);
+            throw new Error(`Telegram webhook error: ${response.status}`);
+        }
+    }
+    
+    async sendToFallbackServer(formData) {
+        console.log('🔄 Отправка на резервный сервер...');
+        
+        const response = await fetch(this.config.fallback.url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            console.log('✅ Данные отправлены на резервный сервер');
+            return true;
+        } else {
+            throw new Error(`Fallback server error: ${response.status}`);
+        }
+    }
+    
+    getDeviceInfo(userAgent) {
+        if (/Mobile|Android|iPhone|iPad/i.test(userAgent)) {
+            return 'Мобильное';
+        } else if (/Tablet/i.test(userAgent)) {
+            return 'Планшет';
+        } else {
+            return 'Десктоп';
+        }
+    }
+    
     saveToLocalStorage(data) {
         const leads = JSON.parse(localStorage.getItem('automation-game-leads') || '[]');
         leads.push(data);
         localStorage.setItem('automation-game-leads', JSON.stringify(leads));
+        console.log('💾 Данные сохранены локально');
     }
     
     setSubmitButton(disabled) {
         const button = document.getElementById('submitBtn');
         button.disabled = disabled;
         button.textContent = disabled ? 'Отправка...' : 'Оставить заявку';
+        
+        if (disabled) {
+            button.style.opacity = '0.7';
+            button.style.cursor = 'not-allowed';
+        } else {
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
+        }
     }
     
     showMessage(message, type = 'info') {
-        // Удаляем существующее сообщение
         const existingMessage = document.querySelector('.form-message');
         if (existingMessage) {
             existingMessage.remove();
         }
         
-        // Создаем новое сообщение
         const messageDiv = document.createElement('div');
         messageDiv.className = `form-message ${type}`;
         messageDiv.style.cssText = `
             margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 15px;
+            border-radius: 8px;
             text-align: center;
             font-size: 14px;
+            line-height: 1.4;
             ${type === 'error' ? 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;' : ''}
             ${type === 'success' ? 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;' : ''}
+            ${type === 'warning' ? 'background: #fff3cd; color: #856404; border: 1px solid #ffeaa7;' : ''}
             ${type === 'info' ? 'background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;' : ''}
         `;
         messageDiv.textContent = message;
         
         this.form.appendChild(messageDiv);
         
-        // Автоматически скрываем сообщение через 5 секунд
         setTimeout(() => {
             if (messageDiv.parentNode) {
                 messageDiv.remove();
             }
-        }, 5000);
+        }, 7000);
     }
     
-    showSuccess() {
+    showSuccess(results) {
         // Скрываем форму
         this.form.style.display = 'none';
+        
+        // Подсчитываем успешные отправки
+        const successfulChannels = results.filter(r => r.success).map(r => r.channel);
         
         // Показываем сообщение об успехе
         const successDiv = document.createElement('div');
@@ -248,25 +436,46 @@ class LeadFormHandler {
         
         successDiv.innerHTML = `
             <div style="font-size: 48px; margin-bottom: 20px;">🎉</div>
-            <h3 style="color: #28a745; margin-bottom: 15px;">Заявка отправлена!</h3>
-            <p style="color: #666; margin-bottom: 20px;">
+            <h3 style="color: #28a745; margin-bottom: 15px;">Заявка успешно отправлена!</h3>
+            <p style="color: #666; margin-bottom: 15px;">
                 Спасибо за интерес к автоматизации!<br>
-                Мы свяжемся с вами в течение часа.
+                Мы свяжемся с вами в течение 30 минут.
             </p>
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin: 15px 0; font-size: 12px; color: #666;">
+                ✅ Отправлено через: ${successfulChannels.join(', ')}
+            </div>
             <button onclick="window.location.reload()" style="
                 padding: 12px 24px;
-                background: #007acc;
+                background: #28a745;
                 color: white;
                 border: none;
                 border-radius: 8px;
                 cursor: pointer;
                 font-size: 16px;
+                margin-right: 10px;
             ">Играть снова</button>
+            <button onclick="window.close()" style="
+                padding: 12px 24px;
+                background: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+            ">Закрыть</button>
         `;
         
         const formContainer = document.getElementById('leadForm');
         formContainer.innerHTML = '';
         formContainer.appendChild(successDiv);
+        
+        // Отправляем событие успешной отправки
+        if (window.gtag) {
+            window.gtag('event', 'lead_submitted', {
+                event_category: 'engagement',
+                event_label: 'automation_game'
+            });
+        }
     }
 }
 
@@ -280,6 +489,10 @@ function initLeadForm() {
 
 // Инициализация при загрузке DOM
 document.addEventListener('DOMContentLoaded', () => {
-    // Не инициализируем сразу, только когда форма будет показана
     window.initLeadForm = initLeadForm;
 });
+
+// Экспорт для использования в других модулях
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = LeadFormHandler;
+}

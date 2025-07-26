@@ -1,0 +1,21 @@
+{
+  "name": "automation-business-game",
+  "version": "1.0.0",
+  "description": "HTML5 game 'Automation Saves Business' for Telegram WebView",
+  "main": "index.html",
+  "scripts": {
+    "deploy": "git add . && git commit -m 'Update game' && git push origin main",
+    "serve": "python -m http.server 8080 || python3 -m http.server 8080"
+  },
+  "keywords": [
+    "telegram",
+    "webview",
+    "automation",
+    "business",
+    "game",
+    "phaser",
+    "html5"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
