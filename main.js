@@ -68,16 +68,16 @@ class AutomationGame {
                 backgroundColor: '#ffffff',
                 // Настройки рендеринга оптимизированы для мобильных
                 render: {
-                    antialias: false,
+                    antialias: true,
                     pixelArt: false,
-                    roundPixels: true,
+                    roundPixels: false,
                     transparent: false,
                     clearBeforeRender: true,
                     preserveDrawingBuffer: false,
                     premultipliedAlpha: true,
-                    failIfMajorPerformanceCaveat: isMobile, // Более строгие требования на мобильных
-                    powerPreference: isMobile ? 'default' : 'high-performance',
-                    batchSize: isMobile ? 2048 : 4096 // Меньший batch для мобильных
+                    failIfMajorPerformanceCaveat: false,
+                    powerPreference: 'high-performance',
+                    batchSize: 4096
                 },
                 physics: {
                     default: 'arcade',
@@ -96,8 +96,7 @@ class AutomationGame {
                     autoCenter: Phaser.Scale.CENTER_BOTH,
                     width: GAME_CONFIG.width,
                     height: GAME_CONFIG.height,
-                    // Поддержка высокого разрешения только на десктопе
-                    resolution: isMobile ? 1 : GAME_CONFIG.pixelRatio,
+                    resolution: window.devicePixelRatio || 1,
                     // Минимальные и максимальные размеры
                     min: {
                         width: 320,
@@ -387,7 +386,7 @@ window.addEventListener('load', () => {
     automationGame.init();
 });
 
-// Обработка изменения размера окна
+// Об��аботка изменения размера окна
 window.addEventListener('resize', () => {
     if (automationGame && automationGame.game) {
         automationGame.game.scale.refresh();

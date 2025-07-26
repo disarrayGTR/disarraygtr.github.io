@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Автоматизация спасёт бизнес</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
@@ -25,11 +28,15 @@
 
         /* Улучшение качества изображений для четкого отображения */
         canvas {
+            image-rendering: -webkit-optimize-contrast;
             image-rendering: -moz-crisp-edges;
-            image-rendering: -webkit-crisp-edges;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
             -ms-interpolation-mode: nearest-neighbor;
+            width: 100% !important;
+            height: auto !important;
+            max-width: 100vw;
+            max-height: 100vh;
         }
 
         /* Оптимизация для мобильных устройств */
@@ -153,15 +160,15 @@
         </form>
     </div>
 
-    <script src="config.js"></script>
-    <script src="telegram-bot.js"></script>
-    <script src="scenes/Scene1.js"></script>
-    <script src="scenes/Scene2.js"></script>
-    <script src="scenes/Scene3.js"></script>
-    <script src="scenes/Scene4.js"></script>
-    <script src="scenes/Scene5.js"></script>
-    <script src="forms/leadForm.js"></script>
-    <script src="main.js"></script>
+    <script src="config.js?v=1.1"></script>
+    <script src="telegram-bot.js?v=1.1"></script>
+    <script src="scenes/Scene1.js?v=1.1"></script>
+    <script src="scenes/Scene2.js?v=1.1"></script>
+    <script src="scenes/Scene3.js?v=1.1"></script>
+    <script src="scenes/Scene4.js?v=1.1"></script>
+    <script src="scenes/Scene5.js?v=1.1"></script>
+    <script src="forms/leadForm.js?v=1.1"></script>
+    <script src="main.js?v=1.1"></script>
 
     <!-- Debug script (только для разработки) -->
     <script>
@@ -176,18 +183,32 @@
     </script>
 
     <script>
-        // Регистрация Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('SW registered: ', registration);
-                    })
-                    .catch(registrationError => {
-                        console.log('SW registration failed: ', registrationError);
-                    });
+        // Принудительная очистка кэша в Telegram WebView
+        if (window.Telegram && window.Telegram.WebApp) {
+            // Добавляем timestamp для обхода кэша Telegram
+            const timestamp = Date.now();
+            const scripts = document.querySelectorAll('script[src]');
+            scripts.forEach(script => {
+                if (script.src.includes('.js') && !script.src.includes('telegram') && !script.src.includes('phaser')) {
+                    const url = new URL(script.src);
+                    url.searchParams.set('t', timestamp);
+                    script.src = url.href;
+                }
             });
         }
+
+        // Регистрация Service Worker (отключена для лучшего обновления в Telegram)
+        // if ('serviceWorker' in navigator) {
+        //     window.addEventListener('load', () => {
+        //         navigator.serviceWorker.register('/sw.js')
+        //             .then(registration => {
+        //                 console.log('SW registered: ', registration);
+        //             })
+        //             .catch(registrationError => {
+        //                 console.log('SW registration failed: ', registrationError);
+        //             });
+        //     });
+        // }
     </script>
 </body>
 </html>

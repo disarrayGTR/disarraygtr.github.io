@@ -190,10 +190,12 @@ class LeadFormHandler {
         try {
             // Пытаемся отправить через различные каналы
             const results = await this.sendToAllChannels(formData);
-            
+
             // Проверяем результаты
             const successCount = results.filter(r => r.success).length;
-            
+
+            console.log('📊 Результаты отправки:', results);
+
             if (successCount > 0) {
                 console.log(`✅ Данные успешно отправлены через ${successCount} канал(ов)`);
                 this.showSuccess(results);
@@ -202,7 +204,7 @@ class LeadFormHandler {
                 this.saveToLocalStorage(formData);
                 this.showMessage('Заявка сохранена локально! Мы обработаем её в ближайшее время.', 'warning');
             }
-            
+
         } catch (error) {
             console.error('❌ Ошибка отправки формы:', error);
             this.saveToLocalStorage(formData);
@@ -268,22 +270,91 @@ class LeadFormHandler {
 
         const googleAppsScriptUrl = 'https://script.google.com/macros/s/AKfycbxwep6ng0s2AQF-MbQ1PwwTly82gOowqG_y665sft4EZTvGhAzrrD5XXjrr8zXf1k_iiw/exec';
 
-        const response = await fetch(googleAppsScriptUrl, {
-            method: 'POST',
-            mode: 'no-cors', // Google Apps Script требует no-cors
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData)
-        });
+        try {
+            // Пробуем JSON отправку
+            console.log('🔄 Отправляем данные:', formData);
 
-        // С no-cors мы не можем проверить response, поэтому считаем успешным
-        console.log('✅ Данные отправлены в Google Apps Script');
-        return true;
+            const response = await fetch(googleAppsScriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            console.log('✅ Запрос отправлен в Google Apps Script (no-cors mode)');
+
+            // В режиме no-cors мы не можем проверить ответ, но данные дол��ны дойти
+            // Добавляем небольшую задержку для обработки
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            return true;
+
+        } catch (error) {
+            console.error('❌ Ошибка отправки в Google Apps Script:', error);
+
+            // Пробуем альтернативный метод через iframe (для обхода CORS)
+            try {
+                return await this.sendViaIframe(googleAppsScriptUrl, formData);
+            } catch (iframeError) {
+                console.error('❌ Альтернативный метод также не сработал:', iframeError);
+                throw error;
+            }
+        }
+    }
+
+    async sendViaIframe(url, data) {
+        return new Promise((resolve, reject) => {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            form.target = iframe.name = 'hidden-form-' + Date.now();
+
+            // Добавляем поля формы
+            Object.keys(data).forEach(key => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = data[key];
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(iframe);
+            document.body.appendChild(form);
+
+            iframe.onload = () => {
+                console.log('✅ Данные отправлены через iframe метод');
+                document.body.removeChild(iframe);
+                document.body.removeChild(form);
+                resolve(true);
+            };
+
+            iframe.onerror = () => {
+                console.error('❌ Ошибка отправки через iframe');
+                document.body.removeChild(iframe);
+                document.body.removeChild(form);
+                reject(new Error('Iframe submission failed'));
+            };
+
+            form.submit();
+
+            // Таймаут для безопасности
+            setTimeout(() => {
+                if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                    document.body.removeChild(form);
+                    resolve(true); // Считаем успешным даже при таймауте
+                }
+            }, 3000);
+        });
     }
     
     async sendToTelegramWebhook(formData) {
-        console.log('🤖 Отправка через Telegram webhook...');
+        console.log('🤖 Отп��авка через Telegram webhook...');
         
         if (!this.config.telegram.webhookUrl || this.config.telegram.webhookUrl === 'https://your-server.com/webhook/telegram') {
             console.warn('⚠️ Telegram webhook URL не настроен');

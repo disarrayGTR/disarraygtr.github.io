@@ -85,23 +85,25 @@ class Scene1 extends Phaser.Scene {
         // Заголовок согласно ТЗ
         const title = this.add.text(width/2, height * 0.08, GAME_CONFIG.texts.scene1.title, {
             fontSize: Math.floor(Math.min(width, height) * 0.055) + 'px',
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
             fill: '#2c3e50',
             fontStyle: 'bold',
             stroke: '#ffffff',
-            strokeThickness: 3,
-            align: 'center'
+            strokeThickness: 2,
+            align: 'center',
+            resolution: window.devicePixelRatio || 1
         }).setOrigin(0.5);
         
         // Описание проблемы согласно ТЗ
         const description = this.add.text(width/2, height * 0.18, GAME_CONFIG.texts.scene1.description, {
             fontSize: Math.floor(Math.min(width, height) * 0.032) + 'px',
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
             fill: '#34495e',
             align: 'center',
-            lineSpacing: 10,
+            lineSpacing: 8,
             stroke: '#ffffff',
-            strokeThickness: 2
+            strokeThickness: 1,
+            resolution: window.devicePixelRatio || 1
         }).setOrigin(0.5);
         
         // Создаем хаос согласно ТЗ: "всплывающие окна, много заявок, сообщения, очередь клиентов"
@@ -253,7 +255,7 @@ class Scene1 extends Phaser.Scene {
         const buttonHeight = Math.min(height * 0.14, 90);
         const buttonY = height * 0.82;
         
-        // Кнопка "Нанять менеджера" - согласно ТЗ: дорого и неэффективно
+        // Кнопка "Нанять менедже��а" - согласно ТЗ: дорого и неэффективно
         const managerBtn = this.add.rectangle(
             width/2 - buttonWidth/2 - 25, 
             buttonY, 
@@ -362,7 +364,7 @@ class Scene1 extends Phaser.Scene {
         // Останавливаем анимации хаоса
         this.tweens.killAll();
         
-        // Показываем неудачный результат согласно ТЗ
+        // Показываем неудачный р��зультат согласно ТЗ
         this.showBadChoice();
     }
     
