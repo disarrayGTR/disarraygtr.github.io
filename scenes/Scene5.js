@@ -44,7 +44,7 @@ class Scene5 extends Phaser.Scene {
         });
         
         // Заголовок согласно ТЗ
-        this.add.text(width/2, height * 0.12, GAME_CONFIG.texts.scene5.title, {
+        this.add.text(width/2, height * 0.08, 'Хотите такую игру под свой бизнес?', {
             fontSize: Math.floor(Math.min(width, height) * 0.05) + 'px',
             fontFamily: 'Arial, sans-serif',
             fill: '#2c3e50',
@@ -53,9 +53,9 @@ class Scene5 extends Phaser.Scene {
             strokeThickness: 2,
             align: 'center'
         }).setOrigin(0.5);
-        
-        // Описание согласно ТЗ
-        this.add.text(width/2, height * 0.22, GAME_CONFIG.texts.scene5.description, {
+
+        // Подзаголовок
+        this.add.text(width/2, height * 0.15, 'Закажите чат-бота для своего бизнеса!', {
             fontSize: Math.floor(Math.min(width, height) * 0.035) + 'px',
             fontFamily: 'Arial, sans-serif',
             fill: '#34495e',
@@ -67,54 +67,105 @@ class Scene5 extends Phaser.Scene {
         
         // Призыв к действию согласно ТЗ
         this.createCallToAction(width, height);
-        
+
         // Статистика доверия
         this.createTrustElements(width, height);
+
+        // Резервная кнопка для тестирования (если основная не работает)
+        this.time.delayedCall(3000, () => {
+            const testBtn = this.add.rectangle(width * 0.9, height * 0.1, 120, 40, 0xff6b35)
+                .setInteractive({ useHandCursor: true })
+                .on('pointerdown', () => {
+                    console.log('🔧 Тестовая кнопка нажата!');
+                    this.showLeadForm();
+                });
+
+            this.add.text(width * 0.9, height * 0.1, 'ТЕСТ ФОРМЫ', {
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
+                fill: '#ffffff',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+        });
+
+        // Автоматический переход к форме через 15 секунд, если пользователь не нажал кнопку
+        this.time.delayedCall(15000, () => {
+            console.log('⏰ Автоматический переход к форме через 15 секунд');
+            const hint = this.add.text(width/2, height * 0.95, 'Нажмите на кнопку выше для заказа ↑', {
+                fontSize: Math.floor(Math.min(width, height) * 0.025) + 'px',
+                fontFamily: 'Arial, sans-serif',
+                fill: '#e74c3c',
+                fontStyle: 'bold',
+                align: 'center'
+            }).setOrigin(0.5);
+
+            // Мигание подсказки
+            this.tweens.add({
+                targets: hint,
+                alpha: { from: 1, to: 0.3 },
+                duration: 600,
+                yoyo: true,
+                repeat: -1
+            });
+        });
     }
     
     createCallToAction(width, height) {
-        // Основной блок CTA
-        const ctaX = width/2 + width * 0.1;
-        const ctaY = height/2;
-        
+        // Центральный блок CTA
+        const ctaX = width/2;
+        const ctaY = height * 0.45;
+
         // Фон CTA
-        const ctaBg = this.add.rectangle(ctaX, ctaY, 350, 280, 0xffffff, 0.98);
-        ctaBg.setStrokeStyle(4, 0x3498db);
+        const ctaBg = this.add.rectangle(ctaX, ctaY, Math.min(width * 0.9, 400), 300, 0xffffff, 0.98);
+        ctaBg.setStrokeStyle(4, 0xe74c3c);
         ctaBg.setScale(0);
-        
+
         // Заголовок CTA
-        const ctaTitle = this.add.text(ctaX, ctaY - 110, '🎯 БЕСПЛАТНАЯ КОНСУЛЬТАЦИЯ', {
-            fontSize: Math.floor(Math.min(width, height) * 0.032) + 'px',
+        const ctaTitle = this.add.text(ctaX, ctaY - 120, '🎯 БЕСПЛАТНАЯ КОНСУЛЬТАЦИЯ', {
+            fontSize: Math.floor(Math.min(width, height) * 0.035) + 'px',
             fontFamily: 'Arial, sans-serif',
-            fill: '#3498db',
+            fill: '#e74c3c',
             fontStyle: 'bold',
             align: 'center'
         }).setOrigin(0.5);
         ctaTitle.setAlpha(0);
-        
-        // Преимущества
+
+        // Основное предложение
+        const mainOffer = this.add.text(ctaX, ctaY - 80, 'Узнайте, как автоматизация\nповысит ваши продажи на 150%', {
+            fontSize: Math.floor(Math.min(width, height) * 0.028) + 'px',
+            fontFamily: 'Arial, sans-serif',
+            fill: '#2c3e50',
+            align: 'center',
+            lineSpacing: 5
+        }).setOrigin(0.5);
+        mainOffer.setAlpha(0);
+
+        // Преимущества в более компактном виде
         const benefits = [
-            '✅ Увеличение продаж до 150%',
-            '✅ Экономия 30 000₽/месяц',
-            '✅ Автоматизация 24/7',
-            '✅ Окупаемость за 2-3 месяца'
+            '✅ Экономия 30 000₽/месяц на персонале',
+            '✅ Автоматизация работы 24/7',
+            '✅ Быстрая окупаемость за 2-3 месяца'
         ];
-        
+
         const benefitTexts = [];
         benefits.forEach((benefit, index) => {
-            const text = this.add.text(ctaX - 120, ctaY - 60 + index * 30, benefit, {
+            const text = this.add.text(ctaX, ctaY - 30 + index * 25, benefit, {
                 fontSize: Math.floor(Math.min(width, height) * 0.024) + 'px',
                 fontFamily: 'Arial, sans-serif',
-                fill: '#2c3e50'
-            }).setOrigin(0, 0.5);
+                fill: '#27ae60',
+                align: 'center'
+            }).setOrigin(0.5);
             text.setAlpha(0);
             benefitTexts.push(text);
         });
-        
-        // Кнопка "Оставить заявку" согласно ТЗ
-        const formBtn = this.add.rectangle(ctaX, ctaY + 80, 280, 60, 0xe74c3c)
+
+        // БОЛЬШАЯ заметная кнопка "Оставить заявку" согласно ТЗ
+        const formBtn = this.add.rectangle(ctaX, ctaY + 80, 320, 70, 0xe74c3c)
             .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => this.showLeadForm())
+            .on('pointerdown', () => {
+                console.log('🎯 Кнопка "Оставить заявку" нажата!');
+                this.showLeadForm();
+            })
             .on('pointerover', () => {
                 formBtn.setFillStyle(0xc0392b);
                 this.tweens.add({ targets: formBtn, scale: 1.05, duration: 150 });
@@ -124,64 +175,93 @@ class Scene5 extends Phaser.Scene {
                 this.tweens.add({ targets: formBtn, scale: 1, duration: 150 });
             });
         formBtn.setAlpha(0);
-        
-        const formBtnText = this.add.text(ctaX, ctaY + 80, '💼 ОСТАВИТЬ ЗАЯВКУ', {
-            fontSize: Math.floor(Math.min(width, height) * 0.028) + 'px',
+
+        const formBtnText = this.add.text(ctaX, ctaY + 80, '📝 ОСТАВИТЬ ЗАЯВКУ', {
+            fontSize: Math.floor(Math.min(width, height) * 0.032) + 'px',
             fontFamily: 'Arial, sans-serif',
             fill: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         formBtnText.setAlpha(0);
-        
+
         // Дополнительная информация
-        const additionalInfo = this.add.text(ctaX, ctaY + 125, '⏰ Ответим в течение 30 минут\n🔒 Ваши данные защищены', {
+        const additionalInfo = this.add.text(ctaX, ctaY + 125, '⏰ Ответим в течение 30 минут • 🔒 Данные защищены', {
             fontSize: Math.floor(Math.min(width, height) * 0.02) + 'px',
             fontFamily: 'Arial, sans-serif',
             fill: '#7f8c8d',
-            align: 'center',
-            lineSpacing: 5
+            align: 'center'
         }).setOrigin(0.5);
         additionalInfo.setAlpha(0);
-        
+
         // Анимация появления CTA
         this.tweens.add({
             targets: ctaBg,
             scale: 1,
             duration: 800,
-            delay: 500,
+            delay: 300,
             ease: 'Back.easeOut'
         });
-        
+
         this.tweens.add({
             targets: ctaTitle,
             alpha: 1,
             duration: 600,
-            delay: 800
+            delay: 600
         });
-        
+
+        this.tweens.add({
+            targets: mainOffer,
+            alpha: 1,
+            duration: 600,
+            delay: 900
+        });
+
         benefitTexts.forEach((text, index) => {
             this.tweens.add({
                 targets: text,
                 alpha: 1,
-                x: text.x + 10,
                 duration: 400,
                 delay: 1200 + index * 200
             });
         });
-        
+
         this.tweens.add({
-            targets: [formBtn, formBtnText, additionalInfo],
+            targets: [formBtn, formBtnText],
             alpha: 1,
+            scale: { from: 0.9, to: 1 },
             duration: 600,
-            delay: 2500
+            delay: 2000,
+            ease: 'Back.easeOut'
         });
-        
-        // Пульсация кнопки
-        this.time.delayedCall(3000, () => {
+
+        this.tweens.add({
+            targets: additionalInfo,
+            alpha: 1,
+            duration: 400,
+            delay: 2300
+        });
+
+        // Привлекающая пульсация кнопки
+        this.time.delayedCall(2500, () => {
             this.tweens.add({
                 targets: formBtn,
-                scale: { from: 1, to: 1.08 },
-                duration: 1000,
+                scale: { from: 1, to: 1.1 },
+                duration: 1200,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        });
+
+        // Дополнительное мерцание для привлечения внимания
+        this.time.delayedCall(3000, () => {
+            const shimmer = this.add.rectangle(ctaX, ctaY + 80, 320, 70, 0xffffff, 0.4);
+            shimmer.setAlpha(0);
+
+            this.tweens.add({
+                targets: shimmer,
+                alpha: { from: 0, to: 0.6 },
+                duration: 800,
                 yoyo: true,
                 repeat: -1,
                 ease: 'Sine.easeInOut'
@@ -190,75 +270,64 @@ class Scene5 extends Phaser.Scene {
     }
     
     createTrustElements(width, height) {
-        // Элементы доверия слева
-        const trustStats = [
-            { number: '500+', label: 'Довольных клиентов' },
-            { number: '24/7', label: 'Поддержка' },
-            { number: '2-3 мес', label: 'Окупаемость' }
-        ];
-        
-        trustStats.forEach((stat, index) => {
-            this.time.delayedCall(1500 + index * 400, () => {
-                const x = width * 0.2;
-                const y = height * 0.4 + index * height * 0.1;
-                
-                const bg = this.add.rectangle(x, y, 160, 70, 0xffffff, 0.9);
-                bg.setStrokeStyle(2, 0x3498db);
-                bg.setScale(0);
-                
-                const number = this.add.text(x, y - 10, stat.number, {
-                    fontSize: Math.floor(Math.min(width, height) * 0.04) + 'px',
-                    fontFamily: 'Arial, sans-serif',
-                    fill: '#3498db',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5);
-                number.setAlpha(0);
-                
-                const label = this.add.text(x, y + 20, stat.label, {
-                    fontSize: Math.floor(Math.min(width, height) * 0.022) + 'px',
-                    fontFamily: 'Arial, sans-serif',
-                    fill: '#2c3e50'
-                }).setOrigin(0.5);
-                label.setAlpha(0);
-                
-                this.tweens.add({
-                    targets: bg,
-                    scale: 1,
-                    duration: 400,
-                    ease: 'Back.easeOut'
-                });
-                
-                this.tweens.add({
-                    targets: [number, label],
-                    alpha: 1,
-                    duration: 300,
-                    delay: 200
-                });
-            });
+        // Простая строка доверия внизу экрана
+        const trustLine = this.add.text(width/2, height * 0.9,
+            '⭐ 500+ довольных клиентов • 📞 24/7 поддержка • ⚡ Окупаемость 2-3 месяца', {
+            fontSize: Math.floor(Math.min(width, height) * 0.022) + 'px',
+            fontFamily: 'Arial, sans-serif',
+            fill: '#7f8c8d',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        trustLine.setAlpha(0);
+
+        this.tweens.add({
+            targets: trustLine,
+            alpha: 0.8,
+            duration: 600,
+            delay: 1000
         });
     }
     
     showLeadForm() {
+        console.log('🎯 Переход к форме лидов...');
+
         // Анимация затемнения игры согласно ТЗ
         this.cameras.main.fadeOut(500, 0, 0, 0);
-        
+
         this.cameras.main.once('camerafadeoutcomplete', () => {
+            console.log('📋 Показываем форму лидов согласно ТЗ');
+
             // Показываем HTML форму согласно ТЗ: "Форма: Имя, Телефон, Email"
             const formElement = document.getElementById('leadForm');
+
+            if (!formElement) {
+                console.error('❌ Форма не найдена! Проверьте HTML.');
+                return;
+            }
+
+            console.log('✅ Форма найдена, отображаем...');
+
+            // Показываем форму
             formElement.style.display = 'block';
             formElement.style.opacity = '0';
             formElement.style.transform = 'translate(-50%, -50%) scale(0.9)';
-            
+            formElement.style.zIndex = '2000';
+
             // Анимация появления формы
             setTimeout(() => {
                 formElement.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
                 formElement.style.opacity = '1';
                 formElement.style.transform = 'translate(-50%, -50%) scale(1)';
+                console.log('🎨 Форма анимирована и показана');
             }, 100);
-            
+
             // Инициализируем обработку формы согласно ТЗ: "Отправка данных в Telegram-бота"
             if (window.initLeadForm) {
+                console.log('🔧 Инициализируем обработку формы');
                 window.initLeadForm();
+            } else {
+                console.warn('⚠️ Функция initLeadForm не найдена');
             }
         });
     }

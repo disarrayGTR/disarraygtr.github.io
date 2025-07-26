@@ -56,7 +56,7 @@ class Scene4 extends Phaser.Scene {
         // Достижения согласно ТЗ
         const achievements = [
             '📈 Ув��личили продажи на 150%',
-            '👥 Снизили нагрузку на персонал',
+            '👥 Снизили нагрузку на пе��сонал',
             '⚙️ Автоматизировали воронку',
             '💰 Экономия 30 000₽/месяц'
         ];
@@ -97,7 +97,10 @@ class Scene4 extends Phaser.Scene {
         this.time.delayedCall(4000, () => {
             const finalBtn = this.add.rectangle(width/2, height * 0.85, 300, 60, 0xe67e22)
                 .setInteractive({ useHandCursor: true })
-                .on('pointerdown', () => this.scene.start('Scene5'))
+                .on('pointerdown', () => {
+                    console.log('🚀 Переход к Scene5 (форма лидов)');
+                    this.scene.start('Scene5');
+                })
                 .on('pointerover', () => {
                     finalBtn.setFillStyle(0xd35400);
                     this.tweens.add({ targets: finalBtn, scale: 1.05, duration: 150 });
