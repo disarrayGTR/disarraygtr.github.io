@@ -116,6 +116,7 @@
     </div>
 
     <script src="config.js"></script>
+    <script src="telegram-bot.js"></script>
     <script src="scenes/Scene1.js"></script>
     <script src="scenes/Scene2.js"></script>
     <script src="scenes/Scene3.js"></script>
@@ -123,5 +124,32 @@
     <script src="scenes/Scene5.js"></script>
     <script src="forms/leadForm.js"></script>
     <script src="main.js"></script>
+
+    <!-- Debug script (только для разработки) -->
+    <script>
+        // Загружаем debug.js только в development или при включенном режиме отладки
+        if (location.hostname === 'localhost' ||
+            location.hostname === '127.0.0.1' ||
+            localStorage.getItem('debug-mode') === 'true') {
+            const debugScript = document.createElement('script');
+            debugScript.src = 'debug.js';
+            document.head.appendChild(debugScript);
+        }
+    </script>
+
+    <script>
+        // Регистрация Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

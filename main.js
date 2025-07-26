@@ -1,9 +1,10 @@
-// Основной файл игры
+// Основной файл игры с улучшенной обработкой ошибок
 class AutomationGame {
     constructor() {
         this.telegram = null;
         this.config = null;
         this.game = null;
+        this.isInitialized = false;
     }
     
     createAudioContext() {
@@ -42,43 +43,128 @@ class AutomationGame {
     }
 
     init() {
-        // Инициализация Telegram WebApp
-        this.telegram = initTelegram();
+        try {
+            // Инициализация Telegram WebApp
+            this.telegram = initTelegram();
+            
+            console.log('✅ Telegram WebApp initialized successfully');
+            
+            // Отслеживание инициализации Telegram
+            this.trackEvent('telegram_webapp_init', {
+                version: this.telegram?.version || 'unknown',
+                isTelegram: !!this.telegram,
+                userId: this.telegram?.initDataUnsafe?.user?.id || null
+            });
         
-        // Конфигурация Phaser
-        this.config = {
-            type: Phaser.AUTO,
-            width: GAME_CONFIG.width,
-            height: GAME_CONFIG.height,
-            parent: 'game-container',
-            backgroundColor: '#ffffff',
-            physics: {
-                default: 'arcade',
-                arcade: {
-                    gravity: { y: 0 },
-                    debug: false
-                }
-            },
-            audio: {
-                disableWebAudio: false,
-                context: this.createAudioContext()
-            },
-            scene: [Scene1, Scene2, Scene3, Scene4, Scene5],
-            scale: {
-                mode: Phaser.Scale.FIT,
-                autoCenter: Phaser.Scale.CENTER_BOTH,
+            // Конфигурация Phaser
+            this.config = {
+                type: Phaser.AUTO,
                 width: GAME_CONFIG.width,
-                height: GAME_CONFIG.height
+                height: GAME_CONFIG.height,
+                parent: 'game-container',
+                backgroundColor: '#ffffff',
+                physics: {
+                    default: 'arcade',
+                    arcade: {
+                        gravity: { y: 0 },
+                        debug: false
+                    }
+                },
+                audio: {
+                    disableWebAudio: false,
+                    context: this.createAudioContext()
+                },
+                scene: [Scene1, Scene2, Scene3, Scene4, Scene5],
+                scale: {
+                    mode: Phaser.Scale.FIT,
+                    autoCenter: Phaser.Scale.CENTER_BOTH,
+                    width: GAME_CONFIG.width,
+                    height: GAME_CONFIG.height
+                }
+            };
+            
+            // Создание игры
+            this.game = new Phaser.Game(this.config);
+            
+            // Скрытие индикатора загрузки
+            const loadingElement = document.getElementById('loading');
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
             }
+            
+            this.isInitialized = true;
+            console.log('🚀 Game app fully initialized with Telegram integration');
+            
+            // Отслеживаем старт игры
+            this.trackGameStart();
+            
+        } catch (error) {
+            console.error('❌ Error initializing game:', error);
+            this.handleInitError(error);
+        }
+    }
+    
+    handleInitError(error) {
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+            loadingElement.innerHTML = `
+                <div style="color: #ff4444; text-align: center;">
+                    <h3>Ошибка загрузки игры</h3>
+                    <p>Попробуйте обновить страницу</p>
+                    <button onclick="window.location.reload()" style="
+                        padding: 10px 20px;
+                        background: #007acc;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                    ">Обновить</button>
+                </div>
+            `;
+        }
+        
+        this.trackEvent('game_init_error', {
+            error: error.message,
+            stack: error.stack
+        });
+    }
+    
+    trackGameStart() {
+        const userData = {
+            userId: this.telegram?.initDataUnsafe?.user?.id || null,
+            username: this.telegram?.initDataUnsafe?.user?.username || null,
+            isWebApp: !!this.telegram
         };
         
-        // Создание игры
-        this.game = new Phaser.Game(this.config);
+        console.log('📊 Game start logged (no chat_id):', userData);
         
-        // Скрытие индикатора загрузки
-        document.getElementById('loading').style.display = 'none';
+        this.trackEvent('game_start', userData);
+    }
+    
+    trackEvent(event, data = {}) {
+        const eventData = {
+            event,
+            timestamp: Date.now(),
+            userAgent: navigator.userAgent,
+            isTelegram: !!this.telegram,
+            userId: this.telegram?.initDataUnsafe?.user?.id || null,
+            ...data
+        };
         
-        console.log('Игра "Автоматизация спасёт бизнес" запущена');
+        console.log('📊 Event tracked:', eventData);
+        
+        // Сохраняем события локально для отладки
+        try {
+            const events = JSON.parse(localStorage.getItem('game-events') || '[]');
+            events.push(eventData);
+            // Сохраняем только последние 100 событий
+            if (events.length > 100) {
+                events.splice(0, events.length - 100);
+            }
+            localStorage.setItem('game-events', JSON.stringify(events));
+        } catch (e) {
+            console.warn('Could not save event to localStorage:', e);
+        }
     }
     
     // Отправка данных в Telegram бот
@@ -110,7 +196,7 @@ class AutomationGame {
         }
     }
     
-    // Альтернативная отправка через HTTP API
+    // Альтернатив��ая отправка через HTTP API
     async sendToTelegramAPI(data) {
         const botToken = GAME_CONFIG.telegram.botToken;
         const chatId = GAME_CONFIG.telegram.chatId || '@SavingBusinessBot'; // или ID чата
@@ -151,6 +237,21 @@ class AutomationGame {
 
 // Глобальная переменная игры
 let automationGame;
+
+// Глобальный обработчик ошибок JavaScript
+window.addEventListener('error', (event) => {
+    console.error('Global error:', event.error);
+    
+    // Отслеживаем JavaScript ошибки
+    if (automationGame) {
+        automationGame.trackEvent('javascript_error', {
+            message: event.error?.message || event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno
+        });
+    }
+});
 
 // Инициализация при загрузке страницы
 window.addEventListener('load', () => {

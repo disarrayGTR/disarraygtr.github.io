@@ -51,18 +51,24 @@ const GAME_CONFIG = {
 
 // Telegram WebApp инициализация
 function initTelegram() {
-    if (window.Telegram && window.Telegram.WebApp) {
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        
-        // Получаем информацию о пользователе
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            GAME_CONFIG.telegram.chatId = tg.initDataUnsafe.user.id;
+    try {
+        const botIntegration = new TelegramBotIntegration();
+        const tg = botIntegration.init();
+
+        // Обновляем конфигурацию
+        if (botIntegration.chatId) {
+            GAME_CONFIG.telegram.chatId = botIntegration.chatId;
         }
-        
-        console.log('Telegram WebApp initialized');
+
+        // Логируем инициализацию
+        botIntegration.logEvent('telegram_init', {
+            hasWebApp: !!tg,
+            chatId: botIntegration.chatId
+        });
+
         return tg;
+    } catch (error) {
+        console.error('Ошибка инициализации Telegram:', error);
+        return null;
     }
-    return null;
 }
