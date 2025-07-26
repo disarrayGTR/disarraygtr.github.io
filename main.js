@@ -56,14 +56,17 @@ class AutomationGame {
                 userId: this.telegram?.initDataUnsafe?.user?.id || null
             });
         
-            // Конфигурация Phaser с улучшенным качеством рендеринга
+            // Конфигурация Phaser с оптимизацией для мобильных
+            const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isTelegram = !!(window.Telegram && window.Telegram.WebApp);
+
             this.config = {
                 type: Phaser.AUTO,
                 width: GAME_CONFIG.width,
                 height: GAME_CONFIG.height,
                 parent: 'game-container',
                 backgroundColor: '#ffffff',
-                // Настройки для четкого отображения
+                // Настройки рендеринга оптимизированы для мобильных
                 render: {
                     antialias: false,
                     pixelArt: false,
@@ -72,9 +75,9 @@ class AutomationGame {
                     clearBeforeRender: true,
                     preserveDrawingBuffer: false,
                     premultipliedAlpha: true,
-                    failIfMajorPerformanceCaveat: false,
-                    powerPreference: 'high-performance',
-                    batchSize: 4096
+                    failIfMajorPerformanceCaveat: isMobile, // Более строгие требования на мобильных
+                    powerPreference: isMobile ? 'default' : 'high-performance',
+                    batchSize: isMobile ? 2048 : 4096 // Меньший batch для мобильных
                 },
                 physics: {
                     default: 'arcade',
@@ -93,24 +96,29 @@ class AutomationGame {
                     autoCenter: Phaser.Scale.CENTER_BOTH,
                     width: GAME_CONFIG.width,
                     height: GAME_CONFIG.height,
-                    // Поддержка высокого разрешения
-                    resolution: GAME_CONFIG.pixelRatio,
+                    // Поддержка высокого разрешения только на десктопе
+                    resolution: isMobile ? 1 : GAME_CONFIG.pixelRatio,
                     // Минимальные и максимальные размеры
                     min: {
                         width: 320,
                         height: 240
                     },
                     max: {
-                        width: 1200,
-                        height: 900
+                        width: isMobile ? 800 : 1200,
+                        height: isMobile ? 600 : 900
                     }
+                },
+                // Дополнительные настройки для мобильных
+                fps: {
+                    target: isMobile ? 30 : 60, // Ограничиваем FPS на мобильных
+                    forceSetTimeOut: isMobile
                 }
             };
             
             // Создание игры
             this.game = new Phaser.Game(this.config);
 
-            // Оптимизация канваса для четкости
+            // Оптимизация канваса для четк��сти
             this.optimizeCanvas();
             
             // Скрытие индикатора загрузки
@@ -121,7 +129,10 @@ class AutomationGame {
             
             this.isInitialized = true;
             console.log('🚀 Game app fully initialized with Telegram integration');
-            
+
+            // Запускаем мониторинг производительности после инициализации
+            this.setupPerformanceMonitoring();
+
             // Отслеживаем старт игры
             this.trackGameStart();
             
@@ -179,7 +190,7 @@ class AutomationGame {
                 const rect = canvas.getBoundingClientRect();
                 const dpr = window.devicePixelRatio || 1;
 
-                // Устанавливаем CSS размеры
+                // Устанавливаем CSS размер��
                 canvas.style.width = rect.width + 'px';
                 canvas.style.height = rect.height + 'px';
 
@@ -196,6 +207,66 @@ class AutomationGame {
                 console.log('🎨 Canvas optimized for crisp rendering');
             }
         }, 100);
+    }
+
+    setupPerformanceMonitoring() {
+        // Мониторинг производительности для предотвращения зависаний
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isTelegram = !!(window.Telegram && window.Telegram.WebApp);
+
+        if (isMobile || isTelegram) {
+            console.log('📱 Настройка мониторинга производительности для мобильных');
+
+            // Ограничиваем количество одновременных tweens
+            let tweenCount = 0;
+            const maxTweens = 10;
+
+            // Переопределяем методы добавления анимаций
+            const originalTweensAdd = this.game.tweens.add;
+            this.game.tweens.add = (config) => {
+                if (tweenCount < maxTweens) {
+                    tweenCount++;
+                    const tween = originalTweensAdd.call(this.game.tweens, config);
+
+                    // Уменьшаем счетчик при завершении
+                    tween.on('complete', () => tweenCount--);
+                    tween.on('stop', () => tweenCount--);
+
+                    return tween;
+                } else {
+                    console.warn('⚠️ Слишком много анимаций, пропускаем');
+                    return null;
+                }
+            };
+
+            // Мониторинг FPS
+            let lastTime = performance.now();
+            let frameCount = 0;
+
+            const checkPerformance = () => {
+                const currentTime = performance.now();
+                frameCount++;
+
+                if (currentTime - lastTime >= 2000) { // Каждые 2 секунды
+                    const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+
+                    if (fps < 20) {
+                        console.warn(`⚠️ Низкий FPS: ${fps}. Возможно зависание.`);
+
+                        // Экстренная очистка анимаций при низком FPS
+                        this.game.tweens.killAll();
+                        tweenCount = 0;
+                    }
+
+                    frameCount = 0;
+                    lastTime = currentTime;
+                }
+
+                requestAnimationFrame(checkPerformance);
+            };
+
+            requestAnimationFrame(checkPerformance);
+        }
     }
 
     trackEvent(event, data = {}) {
@@ -310,7 +381,7 @@ window.addEventListener('error', (event) => {
     }
 });
 
-// Инициализация при загрузке страницы
+// Инициализация при ��агрузке страницы
 window.addEventListener('load', () => {
     automationGame = new AutomationGame();
     automationGame.init();
