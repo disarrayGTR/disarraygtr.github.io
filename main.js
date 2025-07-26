@@ -56,13 +56,26 @@ class AutomationGame {
                 userId: this.telegram?.initDataUnsafe?.user?.id || null
             });
         
-            // Конфигурация Phaser
+            // Конфигурация Phaser с улучшенным качеством рендеринга
             this.config = {
                 type: Phaser.AUTO,
                 width: GAME_CONFIG.width,
                 height: GAME_CONFIG.height,
                 parent: 'game-container',
                 backgroundColor: '#ffffff',
+                // Настройки для четкого отображения
+                render: {
+                    antialias: false,
+                    pixelArt: false,
+                    roundPixels: true,
+                    transparent: false,
+                    clearBeforeRender: true,
+                    preserveDrawingBuffer: false,
+                    premultipliedAlpha: true,
+                    failIfMajorPerformanceCaveat: false,
+                    powerPreference: 'high-performance',
+                    batchSize: 4096
+                },
                 physics: {
                     default: 'arcade',
                     arcade: {
@@ -79,12 +92,26 @@ class AutomationGame {
                     mode: Phaser.Scale.FIT,
                     autoCenter: Phaser.Scale.CENTER_BOTH,
                     width: GAME_CONFIG.width,
-                    height: GAME_CONFIG.height
+                    height: GAME_CONFIG.height,
+                    // Поддержка высокого разрешения
+                    resolution: GAME_CONFIG.pixelRatio,
+                    // Минимальные и максимальные размеры
+                    min: {
+                        width: 320,
+                        height: 240
+                    },
+                    max: {
+                        width: 1200,
+                        height: 900
+                    }
                 }
             };
             
             // Создание игры
             this.game = new Phaser.Game(this.config);
+
+            // Оптимизация канваса для четкости
+            this.optimizeCanvas();
             
             // Скрытие индикатора загрузки
             const loadingElement = document.getElementById('loading');
@@ -140,7 +167,37 @@ class AutomationGame {
         
         this.trackEvent('game_start', userData);
     }
-    
+
+    optimizeCanvas() {
+        // Оптимизация канваса для улучшенного качества изображения
+        setTimeout(() => {
+            const canvas = this.game.canvas;
+            if (canvas) {
+                const ctx = canvas.getContext('2d') || canvas.getContext('webgl') || canvas.getContext('webgl2');
+
+                // Устанавливаем правильные размеры с учетом DPI
+                const rect = canvas.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+
+                // Устанавливаем CSS размеры
+                canvas.style.width = rect.width + 'px';
+                canvas.style.height = rect.height + 'px';
+
+                // Отключаем размытие при масштабировании
+                canvas.style.imageRendering = 'crisp-edges';
+                canvas.style.imageRendering = '-moz-crisp-edges';
+                canvas.style.imageRendering = '-webkit-optimize-contrast';
+                canvas.style.imageRendering = 'optimize-contrast';
+                canvas.style.imageRendering = 'pixelated';
+
+                // Дополнительные CSS стили для четкости
+                canvas.style.msInterpolationMode = 'nearest-neighbor';
+
+                console.log('🎨 Canvas optimized for crisp rendering');
+            }
+        }, 100);
+    }
+
     trackEvent(event, data = {}) {
         const eventData = {
             event,
